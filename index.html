@@ -53,20 +53,27 @@
           stream: true,
           logprobs: null,
           stop: '\n',
-          model: 'gpt-3.5-turbo'
+          model: 'gpt-3.5-turbo' // Updated to gpt-3.5-turbo
         })
       });
 
       if (response.ok) {
         const reader = response.body.getReader();
-        let completion = '';
+        let data = '';
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          const chunk = new TextDecoder('utf-8').decode(value);
-          completion += chunk;
+          data += new TextDecoder('utf-8').decode(value);
         }
-        appendMessage('assistant', completion);
+
+        const chunks = JSON.parse(data);
+        let message = "";
+        chunks.forEach(chunk => {
+          if (chunk['role'] == 'assistant') {
+            message += chunk['content'];
+          }
+        });
+        appendMessage('assistant', message);
       } else {
         console.error('Failed to fetch response from the API');
       }
@@ -85,7 +92,7 @@
 
     function appendMessage(role, content) {
       const messageElement = document.createElement('div');
-      messageElement.classList.add('message', role);
+      messageElement.classList.add('message', `${role}-message`);
       messageElement.textContent = content;
       chatLog.appendChild(messageElement);
     }
