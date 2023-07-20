@@ -1,102 +1,110 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>AI Chat</title>
+  <title>OpenAI GPT-3.5 Turbo Chat</title>
   <style>
-    /* Add your custom CSS styles here */
-    .message {
-      margin-bottom: 10px;
-    }
-    .user-message {
-      text-align: right;
+    #chat-box {
+      width: 50%;
+      height: 300px;
+      border: 1px solid black;
+      margin: 0 auto;
+      overflow: auto;
     }
   </style>
 </head>
 <body>
-  <div id="chat-container">
-    <div id="chat-log"></div>
-    <div id="user-input">
-      <input type="text" id="message-input" placeholder="Type your message..." />
-      <button id="send-button">Send</button>
-    </div>
+  <div id="chat-box">
+    <!-- Messages will appear here -->
   </div>
-
-  <script>
-    const apiUrl = 'https://purgpt.xyz/v1/chat/completions';
-    const apiKey = 'purgpt-5bqnjwv8wn3w8lxcctesuk';
-
-    const chatLog = document.getElementById('chat-log');
-    const messageInput = document.getElementById('message-input');
-    const sendButton = document.getElementById('send-button');
-
-    sendButton.addEventListener('click', sendMessage);
-
-    async function sendMessage() {
-      const userMessage = messageInput.value;
-      if (userMessage.trim() === '') return;
-
-      appendMessage('user', userMessage);
-      messageInput.value = '';
-
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          messages: getChatMessages(),
-          max_tokens: 10,
-          temperature: 0.7,
-          top_p: 1,
-          n: 1,
-          stream: true,
-          logprobs: null,
-          stop: '\n',
-          model: 'gpt-3.5-turbo' // Updated to gpt-3.5-turbo
-        })
-      });
-
-      if (response.ok) {
-        const reader = response.body.getReader();
-        let data = '';
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          data += new TextDecoder('utf-8').decode(value);
-        }
-
-        const chunks = JSON.parse(data);
-        let message = "";
-        chunks.forEach(chunk => {
-          if (chunk['role'] == 'assistant') {
-            message += chunk['content'];
-          }
-        });
-        appendMessage('assistant', message);
-      } else {
-        console.error('Failed to fetch response from the API');
-      }
-    }
-
-    function getChatMessages() {
-      const messages = [];
-      const messageElements = chatLog.getElementsByClassName('message');
-      for (let i = 0; i < messageElements.length; i++) {
-        const role = messageElements[i].classList.contains('user-message') ? 'user' : 'assistant';
-        const content = messageElements[i].textContent;
-        messages.push({ role, content });
-      }
-      return messages;
-    }
-
-    
-    function appendMessage(role, content) {
-      const messageElement = document.createElement('div');
-      messageElement.classList.add('message', `${role}-message`);
-      messageElement.textContent = content;
-      chatLog.appendChild(messageElement);
-    }
-  </script>
+  
+  <form id="message-form" autocomplete="off">
+    <input id="message-input" type="text" />
+    <button type="submit">Send</button>
+  </form>
+  
+  <script src="chat.js"></script> <!-- Include your script here -->
 </body>
 </html>
+const apiUrl = 'https://api.openai.com/v1/engines/davinci-codex/completions'; // Your actual API URL
+const apiKey = 'purgpt-5bqnjwv8wn3w8lxcctesuk'; // Your actual API Key
+
+// Message handling
+function getChatMessages() {
+  return [...document.getElementById('chat-box').children].map(msgDiv => {
+    const cls = msgDiv.classList[0];
+    const content = msgDiv.innerText.trim();
+    return {role: cls, content: content};
+  });
+}
+
+function appendMessage(role, message) {
+  const msgDiv = document.createElement('div');
+  msgDiv.classList.add(role);
+  msgDiv.innerText = message;
+  document.getElementById('chat-box').appendChild(msgDiv);
+}
+
+// Event handler for the form submission
+document.getElementById('message-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  sendMessage();
+});
+
+// Message sending
+async function sendMessage() {
+  const messageInput = document.getElementById('message-input');
+  const userMessage = messageInput.value;
+  if (userMessage.trim() === '') return;
+
+  appendMessage('user', userMessage);
+  messageInput.value = '';
+
+  const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      messages: getChatMessages(),
+      max_tokens: 50, // Adjust as needed
+      temperature: 0.7,
+      top_p: 1,
+      stream: true,
+      stop: "\n",
+      model: 'gpt-3.5-turbo'
+    })
+  });
+
+  if (response.ok) {
+    let text = '';
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) { 
+        try {
+          const object = JSON.parse(text);
+          message = object['choices'][0]['message']['content'];
+          appendMessage('assistant', message);
+        } catch (error) {
+          console.error(error);
+        }
+        break; 
+      }
+      text += decoder.decode(value);
+      try {
+        const object = JSON.parse(text);
+        text = '';
+        message = object['choices'][0]['message']['content'];
+        appendMessage('assistant', message);
+      } catch (error) {
+        continue;
+      }
+    }
+  } else {
+    console.error(`API request failed: ${response.status}`);
+  }
+}
+
