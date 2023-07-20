@@ -60,6 +60,8 @@ async function sendMessage() {
       text += decoder.decode(value, { stream: true });
     }
 
+    console.log('Raw response:', text);
+
     try {
       const object = JSON.parse(text);
       const message = object['choices'][0]['message']['content'];
@@ -71,3 +73,4 @@ async function sendMessage() {
     console.error(`API request failed: ${response.status}`);
   }
 }
+
