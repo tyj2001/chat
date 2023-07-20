@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AI Chat</title>
+  <style>
+    /* Add your custom CSS styles here */
+    .message {
+      margin-bottom: 10px;
+    }
+    .user-message {
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <div id="chat-container">
+    <div id="chat-log"></div>
+    <div id="user-input">
+      <input type="text" id="message-input" placeholder="Type your message..." />
+      <button id="send-button">Send</button>
+    </div>
+  </div>
+
+  <script>
+    const apiUrl = 'https://purgpt.xyz/v1/chat/completions';
+    const apiKey = process.env.OPENAI_API_KEY;
+
+    const chatLog = document.getElementById('chat-log');
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
+
+    sendButton.addEventListener('click', sendMessage);
+
+    async function sendMessage() {
+      const userMessage = messageInput.value;
+      if (userMessage.trim() === '') return;
+
+      appendMessage('user', userMessage);
+      messageInput.value = '';
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          messages: getChatMessages(),
+          max_tokens: 10,
+          temperature: 0.7,
+          top_p: 1,
+          n: 1,
+          stream: true,
+          logprobs: null,
+          stop: '\n',
+          model: 'gpt-3.5-turbo'
+        })
+      });
+
+      if (response.ok) {
+        const reader = response.body.getReader();
+        let completion = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = new TextDecoder('utf-8').decode(value);
+          completion += chunk;
+        }
+        appendMessage('assistant', completion);
+      } else {
+        console.error('Failed to fetch response from the API');
+      }
+    }
+
+    function getChatMessages() {
+      const messages = [];
+      const messageElements = chatLog.getElementsByClassName('message');
+      for (let i = 0; i < messageElements.length; i++) {
+        const role = messageElements[i].classList.contains('user-message') ? 'user' : 'assistant';
+        const content = messageElements[i].textContent;
+        messages.push({ role, content });
+      }
+      return messages;
+    }
+
+    function appendMessage(role, content) {
+      const messageElement = document.createElement('div');
+      messageElement.classList.add('message', role);
+      messageElement.textContent = content;
+      chatLog.appendChild(messageElement);
+    }
+  </script>
+</body>
+</html>
