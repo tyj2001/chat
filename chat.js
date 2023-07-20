@@ -1,7 +1,6 @@
-const apiUrl = 'https://purgpt.xyz/v1/chat/completions'; // Your actual API URL
-const apiKey = 'purgpt-5bqnjwv8wn3w8lxcctesuk'; // Your actual API Key
+const apiUrl = 'https://purgpt.xyz/v1/chat/completions';
+const apiKey = 'purgpt-5bqnjwv8wn3w8lxcctesuk';
 
-// Message handling
 function getChatMessages() {
     return [...document.getElementById('chat-box').children].map(msgDiv => {
         const cls = msgDiv.classList[0];
@@ -17,13 +16,11 @@ function appendMessage(role, message) {
     document.getElementById('chat-box').appendChild(msgDiv);
 }
 
-// Event handler for the form submission
 document.getElementById('message-form').addEventListener('submit', function(e) {
     e.preventDefault();
     sendMessage();
 });
 
-// Message sending
 async function sendMessage() {
     const messageInput = document.getElementById('message-input');
     const userMessage = messageInput.value;
@@ -45,7 +42,7 @@ async function sendMessage() {
             top_p: 1,
             stream: true,
             stop: "\n",
-            model: 'gpt-3.5-turbo' // Specify GPT-3.5-turbo
+            model: 'gpt-3.5-turbo'
         })
     });
 
@@ -68,13 +65,19 @@ async function sendMessage() {
                 responseBuffer = responseBuffer.slice(newlineIndex + 1);
 
                 if (line.startsWith('data: ')) {
-                    const jsonStr = line.slice(6).trim(); // Trim off the "data: "
+                    const jsonStr = line.slice(6).trim();
                     if (!jsonStr.length) continue;
 
                     try {
                         const object = JSON.parse(jsonStr);
-                        const message = object['choices'][0]['message']['content'] || '';
-                        assistantOutput += message;
+                        const choices = object['choices'];
+                        if (choices && choices.length > 0) {
+                            const delta = choices[0]['delta'];
+                            if (delta && 'content' in delta) {
+                                const message = delta['content'];
+                                assistantOutput += message;
+                            }
+                        }
                     } catch (error) {
                         console.error('JSON parsing error:', error, jsonStr);
                     }
@@ -87,3 +90,4 @@ async function sendMessage() {
         console.error(`API request failed: ${response.status}`);
     }
 }
+
