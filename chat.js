@@ -56,25 +56,16 @@ async function sendMessage() {
 
     while (true) {
       const { done, value } = await reader.read();
-      if (done) { 
-        try {
-          const object = JSON.parse(text);
-          message = object['choices'][0]['message']['content'];
-          appendMessage('assistant', message);
-        } catch (error) {
-          console.error(error);
-        }
-        break; 
-      }
-      text += decoder.decode(value);
-      try {
-        const object = JSON.parse(text);
-        text = '';
-        message = object['choices'][0]['message']['content'];
-        appendMessage('assistant', message);
-      } catch (error) {
-        continue;
-      }
+      if (done) break;
+      text += decoder.decode(value, { stream: true });
+    }
+
+    try {
+      const object = JSON.parse(text);
+      const message = object['choices'][0]['message']['content'];
+      appendMessage('assistant', message);
+    } catch (error) {
+      console.error('JSON parsing error:', error);
     }
   } else {
     console.error(`API request failed: ${response.status}`);
