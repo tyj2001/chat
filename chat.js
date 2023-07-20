@@ -1,5 +1,5 @@
 const apiUrl = 'https://api.openai.com/v1/engines/davinci-codex/completions'; // Your actual API URL
-const apiKey = 'YOUR API KEY'; // Your actual API Key
+const apiKey = 'purgpt-5bqnjwv8wn3w8lxcctesuk'; // Your actual API Key
 
 // Message handling
 function getChatMessages() {
