@@ -1,5 +1,5 @@
-const apiUrl = 'https://purgpt.xyz/v1/chat/completions';
-const apiKey = 'purgpt-5bqnjwv8wn3w8lxcctesuk';
+const apiUrl = 'https://api.openai.com/v1/engines/davinci-codex/completions';
+const apiKey = 'purgpt-5bqnjwv8wn3w8lxcctesuk'; // 请替换这一行为你的API密钥.
 
 function getChatMessages() {
     return [...document.getElementById('chat-box').children].map(msgDiv => {
@@ -21,13 +21,15 @@ document.getElementById('message-form').addEventListener('submit', function(e) {
     sendMessage();
 });
 
-async function sendMessage() {
+const sendMessage = async () => {
     const messageInput = document.getElementById('message-input');
     const userMessage = messageInput.value;
     if (userMessage.trim() === '') return;
 
     appendMessage('user', userMessage);
     messageInput.value = '';
+
+    const chatMessages = getChatMessages();
 
     const response = await fetch(apiUrl, {
         method: 'POST',
@@ -36,58 +38,20 @@ async function sendMessage() {
             'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-            messages: getChatMessages(),
-            max_tokens: 50, // Adjust as needed
+            model: 'gpt-3.5-turbo',
+            messages: chatMessages,
+            max_tokens: 500, 
             temperature: 0.7,
             top_p: 1,
-            stream: true,
-            stop: "\n",
-            model: 'gpt-3.5-turbo'
+            stream: false, 
         })
     });
 
     if(response.ok) {
-        let assistantOutput = '';
-        let responseBuffer = '';
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const chunk = decoder.decode(value, { stream: true });
-
-            responseBuffer += chunk;
-
-            let newlineIndex;
-            while ((newlineIndex = responseBuffer.indexOf('\n')) !== -1) {
-                const line = responseBuffer.slice(0, newlineIndex).trim();
-                responseBuffer = responseBuffer.slice(newlineIndex + 1);
-
-                if (line.startsWith('data: ')) {
-                    const jsonStr = line.slice(6).trim();
-                    if (!jsonStr.length) continue;
-
-                    try {
-                        const object = JSON.parse(jsonStr);
-                        const choices = object['choices'];
-                        if (choices && choices.length > 0) {
-                            const delta = choices[0]['delta'];
-                            if (delta && 'content' in delta) {
-                                const message = delta['content'];
-                                assistantOutput += message;
-                            }
-                        }
-                    } catch (error) {
-                        console.error('JSON parsing error:', error, jsonStr);
-                    }
-                }
-            }  
-        }
-
-        appendMessage('assistant', assistantOutput);    
+        const data = await response.json();
+        const assistantMessage = data.choices[0].message.content;
+        appendMessage('assistant', assistantMessage);
     } else {
         console.error(`API request failed: ${response.status}`);
     }
 }
-
