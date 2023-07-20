@@ -1,5 +1,5 @@
-const apiUrl = 'https://api.openai.com/v1/engines/davinci-codex/completions';
-const apiKey = 'purgpt-5bqnjwv8wn3w8lxcctesuk'; // 请替换这一行为你的API密钥.
+const apiUrl = 'https://purgpt.xyz/v1/chat/completions';
+const apiKey = 'purgpt-5bqnjwv8wn3w8lxcctesuk';
 
 function getChatMessages() {
     return [...document.getElementById('chat-box').children].map(msgDiv => {
@@ -21,15 +21,13 @@ document.getElementById('message-form').addEventListener('submit', function(e) {
     sendMessage();
 });
 
-const sendMessage = async () => {
+async function sendMessage() {
     const messageInput = document.getElementById('message-input');
     const userMessage = messageInput.value;
     if (userMessage.trim() === '') return;
 
     appendMessage('user', userMessage);
     messageInput.value = '';
-
-    const chatMessages = getChatMessages();
 
     const response = await fetch(apiUrl, {
         method: 'POST',
@@ -38,12 +36,13 @@ const sendMessage = async () => {
             'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-            model: 'gpt-3.5-turbo',
-            messages: chatMessages,
-            max_tokens: 500, 
+            messages: getChatMessages(),
+            max_tokens: 50, // Adjust as needed
             temperature: 0.7,
             top_p: 1,
-            stream: false, 
+            stream: false,
+            stop: "\n",
+            model: 'gpt-3.5-turbo'
         })
     });
 
