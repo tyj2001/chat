@@ -37,7 +37,7 @@ async function sendMessage() {
         },
         body: JSON.stringify({
             messages: getChatMessages(),
-            max_tokens: 50, // Adjust as needed
+            max_tokens: 2048, // Adjust as needed
             temperature: 0.7,
             top_p: 1,
             stream: false,
