@@ -51,24 +51,34 @@ async function sendMessage() {
 
   if (response.ok) {
     let text = '';
+    let assistantOutput = '';
+
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      text += decoder.decode(value, { stream: true });
+      text = decoder.decode(value, { stream: true });
+      
+      if (text.startsWith('data: ')) {
+        const jsonStr = text.slice(6); // Trim off the "data: "
+        try {
+          const object = JSON.parse(jsonStr);
+          const message = object['choices'][0]['delta']['content'] || '';
+
+          assistantOutput += message;
+          
+        } catch (error) {
+          console.error('JSON parsing error:', error);
+        }
+      } else if (text.trim() === 'data: [DONE]') {
+        break;
+      }
     }
 
-    console.log('Raw response:', text);
-
-    try {
-      const object = JSON.parse(text);
-      const message = object['choices'][0]['message']['content'];
-      appendMessage('assistant', message);
-    } catch (error) {
-      console.error('JSON parsing error:', error);
-    }
+    appendMessage('assistant', assistantOutput);
+    
   } else {
     console.error(`API request failed: ${response.status}`);
   }
