@@ -45,7 +45,7 @@ async function sendMessage() {
             top_p: 1,
             stream: true,
             stop: "\n",
-            model: 'gpt-3.5-turbo'
+            model: 'gpt-3.5-turbo' // Specify GPT-3.5-turbo
         })
     });
 
@@ -56,34 +56,34 @@ async function sendMessage() {
         const decoder = new TextDecoder();
 
         while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value, { stream: true });
 
-          responseBuffer += chunk;
+            responseBuffer += chunk;
 
-          let newlineIndex;
-          while ((newlineIndex = responseBuffer.indexOf('\n')) !== -1) {
-            const line = responseBuffer.slice(0, newlineIndex).trim();
-            responseBuffer = responseBuffer.slice(newlineIndex + 1);
+            let newlineIndex;
+            while ((newlineIndex = responseBuffer.indexOf('\n')) !== -1) {
+                const line = responseBuffer.slice(0, newlineIndex).trim();
+                responseBuffer = responseBuffer.slice(newlineIndex + 1);
 
-            if (line.startsWith('data: ')) {
-              const jsonStr = line.slice(6).trim(); // Trim off the "data: "
-              if (!jsonStr.length) continue;
+                if (line.startsWith('data: ')) {
+                    const jsonStr = line.slice(6).trim(); // Trim off the "data: "
+                    if (!jsonStr.length) continue;
 
-              try {
-                const object = JSON.parse(jsonStr);
-                const message = object['choices'][0]['delta']['content'] || '';
-                assistantOutput += message;
-              } catch (error) {
-                  console.error('JSON parsing error:', error, jsonStr);
-              }
-            }
-          }  
+                    try {
+                        const object = JSON.parse(jsonStr);
+                        const message = object['choices'][0]['message']['content'] || '';
+                        assistantOutput += message;
+                    } catch (error) {
+                        console.error('JSON parsing error:', error, jsonStr);
+                    }
+                }
+            }  
         }
 
         appendMessage('assistant', assistantOutput);    
     } else {
-          console.error(`API request failed: ${response.status}`);
+        console.error(`API request failed: ${response.status}`);
     }
 }
